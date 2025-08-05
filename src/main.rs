@@ -84,7 +84,7 @@ fn generate_page_recursive(dir_path_content: &Path, template_path: &Path, dest_d
         let new_dest_path = dest_dir_path.join( entry.file_name() );
         if child_path.is_dir() {
             println!("Path: {:?}", child_path);
-            println!("Parent Path: {:?}", child_path.ancestors().skip(1).next());
+            println!("Parent Path: {:?}", child_path.parent());
             println!("Making Dest Path: {:?}", &new_dest_path);
             std::fs::create_dir(&new_dest_path)?;
             println!("Does it now exists? {}", &new_dest_path.exists());

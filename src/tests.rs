@@ -1,11 +1,11 @@
 use std::collections::HashMap;
-use rust_static_site::htmlnode::HtmlNode;
-use rust_static_site::textnode::{TextNode, TextType};
-use rust_static_site::utils::*;
-use rust_static_site::blocks::*;
+use crate::htmlnode::HtmlNode;
+use crate::textnode::{TextNode, TextType};
+use crate::utils::*;
+use crate::blocks::*;
 
 #[cfg(test)]
-mod test {
+mod tests {
     use super::*;
 
     #[test]

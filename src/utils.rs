@@ -83,7 +83,7 @@ pub fn split_nodes_link(old_nodes: Vec<TextNode>) -> Result<Vec<TextNode>, NodeE
             continue;
         }
         let links = extract_markdown_links(&node.text);
-        println!("{:?}", links);
+        //println!("{:?}", links);
         if links.is_empty() {
             new_nodes.push(node);
             continue;
@@ -91,9 +91,9 @@ pub fn split_nodes_link(old_nodes: Vec<TextNode>) -> Result<Vec<TextNode>, NodeE
         let (title, url) = links.first()
             .ok_or_else(|| NodeError::ParseError("No links found".to_string()))?;
         let pat = format!("[{}]({})", title, url);
-        println!("Hunting for pattern: {}", pat);
+        //println!("Hunting for pattern: {}", pat);
         let sections: Vec<_> = node.text.splitn(2, &pat).collect();
-        println!("Found sections: {:?}", sections);
+        //println!("Found sections: {:?}", sections);
 
         match sections.as_slice() {
             [] => {
@@ -193,7 +193,7 @@ pub fn split_nodes_image(old_nodes: Vec<TextNode>) -> Result<Vec<TextNode>, Node
                         text_type: TextType::Plain,
                         url: None,
                     };
-                    let extra_nodes = split_nodes_link(vec![remaining_node])?;
+                    let extra_nodes = split_nodes_image(vec![remaining_node])?;
                     new_nodes.extend(extra_nodes);
                 }
             },
