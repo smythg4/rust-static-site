@@ -38,7 +38,7 @@ impl HtmlNode {
         // base case for leaf nodes
         if self.children.is_empty() {
             if self.value.is_none() {
-                return Err(NodeError::ValueError);
+                return Err(NodeError::ValueError(finalhtml));
             } else {
                 let text = self.value.clone().unwrap();
                 let props = self.props_to_html();
@@ -55,7 +55,7 @@ impl HtmlNode {
 
         // now work on parent nodes
         if self.tag.is_none() {
-            return Err(NodeError::ValueError);
+            return Err(NodeError::ValueError(finalhtml));
         }
         let open_tag = format!("<{}>", &self.tag.clone().unwrap());
         let close_tag = format!("</{}>", &self.tag.clone().unwrap());

@@ -34,20 +34,36 @@ pub fn split_nodes_delimeter(old_nodes: Vec<TextNode>, delimeter: &str, text_typ
     for node in old_nodes {
         if &node.text_type != &TextType::Plain {
             new_nodes.push(node);
-        } else {
-            let old_type = node.text_type;
-            let old_text = node.text;
-            let old_url = node.url;
+            continue;
+        }
+        if !node.text.contains(delimeter) {
+            new_nodes.push(node);
+            continue;
+        }
 
-            let sections = old_text.split_terminator(delimeter);
-            for (i,s) in sections.enumerate() {
-                let new_type = if i % 2 == 0 { old_type } else { text_type };
-                let new_node = TextNode {
-                    text: s.to_string(),
-                    text_type: new_type,
-                    url: old_url.clone(),
-                };
-                new_nodes.push(new_node)
+        let parts: Vec<&str> = node.text.split(delimeter).collect();
+        if parts.len() %2 == 0 {
+            return Err(NodeError::ParseError(node.text.clone().to_string()));
+        }
+
+        for (i, part) in parts.iter().enumerate() {
+            if i % 2 == 0 {
+                if !part.is_empty() {
+                    new_nodes.push( TextNode {
+                        text: part.to_string(),
+                        text_type: TextType::Plain,
+                        url: None,
+                    });
+                }
+            } else {
+                if !part.is_empty() {
+                    new_nodes.push( TextNode {
+                        text: part.to_string(),
+                        text_type,
+                        url: None,
+                    });
+                }
+
             }
         }
     }

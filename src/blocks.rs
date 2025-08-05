@@ -30,7 +30,16 @@ pub fn is_ol(block: &str) -> bool {
 }
 
 pub fn is_heading(block: &str) -> bool {
-    block.starts_with("#")
+    if !block.starts_with("#") {
+        return false;
+    }
+
+    let hash_count = block.chars().take_while(|&c| c == '#').count();
+    if hash_count == 0 || hash_count > 6 {
+        return false;
+    }
+
+    block.chars().nth(hash_count) == Some(' ') || block.len() == hash_count
 }
 
 pub fn is_code(block: &str) -> bool {
@@ -84,7 +93,7 @@ pub fn extract_code_content(block: &str) -> String {
 
 pub fn extract_heading_content(block: &str) -> String {
     block.trim_start_matches("#")
-        .trim_start_matches(" ")
+        .trim_start()
         .to_string()
 }
 

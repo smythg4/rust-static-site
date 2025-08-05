@@ -1,6 +1,6 @@
 use std::{io::{Read, Write}, path::Path};
 
-use rust_static_site::blocks::{extract_heading_content, get_heading_block_tag, markdown_to_html_node, markdown_to_blocks};
+use rust_static_site::{blocks::{extract_heading_content, get_heading_block_tag, markdown_to_blocks, markdown_to_html_node}, errors::NodeError};
 
 fn clean_and_copy(origin: &Path, dest: &Path) -> Result<(), std::io::Error> {
     if dest.exists() {
@@ -30,10 +30,10 @@ fn clean_and_copy(origin: &Path, dest: &Path) -> Result<(), std::io::Error> {
     Ok(())
 }
 
-fn extract_title(markdown: &str) -> String {
+fn extract_title(markdown: &str) -> Result<String, NodeError> {
     match get_heading_block_tag(markdown).as_str() {
-        "h1" => extract_heading_content(markdown),
-        bt => bt.to_string()
+        "h1" => Ok(extract_heading_content(markdown)),
+        _ => Err(NodeError::ParseError("First block must be an h1 heading".to_string()))
     }   
 }
 
@@ -48,8 +48,12 @@ fn generate_page(from_path: &Path, template_path: &Path, dest_path: &Path, base_
     template_file.read_to_string(&mut template_text)?;
 
 
-    let source_html = markdown_to_html_node(&source_text).to_html().unwrap();
-    let page_title = extract_title(&markdown_to_blocks(&source_text).first().unwrap_or(&"".to_string()));
+    let source_html = markdown_to_html_node(&source_text)
+        .to_html()
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("HTML Conversion failed: {:?}", e)))?;
+    
+    let page_title = extract_title(&markdown_to_blocks(&source_text).first().unwrap_or(&"".to_string()))
+        .unwrap_or_default();
     println!("DEBUG: TITLE = {page_title}");
 
     let page_html = template_text
@@ -83,7 +87,7 @@ fn generate_page_recursive(dir_path_content: &Path, template_path: &Path, dest_d
             std::fs::create_dir(&new_dest_path)?;
             println!("Does it now exists? {}", &new_dest_path.exists());
             generate_page_recursive(&child_path, template_path, &new_dest_path, base_path)?;
-        } else if child_path.is_file() { //&& child_path.extension().unwrap().to_str().unwrap().ends_with(".md") {
+        } else if child_path.is_file() && child_path.extension().map_or(false, |ext| ext == "md") {
             println!("Found markdown file: {:?}", child_path);
             let parent_path = new_dest_path.ancestors().skip(1).next().unwrap();
             let dest_filepath = parent_path.join(Path::new(
@@ -99,19 +103,21 @@ fn generate_page_recursive(dir_path_content: &Path, template_path: &Path, dest_d
     Ok(())
 }
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let source = Path::new("content");
     let dest = Path::new("docs");
     let basepathstr = std::env::args().skip(1).next().unwrap_or("/".to_string());
     let basepath = Path::new(&basepathstr);
 
-    clean_and_copy(Path::new("static"), dest).unwrap();
+    clean_and_copy(Path::new("static"), dest)?;
     generate_page_recursive(
         source, 
         Path::new("template.html"), 
         dest,
         basepath,
-    ).unwrap();
+    )?;
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -121,7 +127,7 @@ mod maintests {
     #[test]
     fn title_extraction() {
         let markdown = "# Hello";
-        let title = extract_title(markdown);
+        let title = extract_title(markdown).unwrap();
         assert_eq!("Hello", title);
     }
 }
