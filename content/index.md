@@ -38,8 +38,8 @@ Here's the deal, **I like Tolkien**.
 Here's what `elflang` looks like (the perfect coding language):
 
 ```
-func main(){
-    fmt.Println("Aiya, Ambar!")
+fn main() {
+    println!("Aiya, Ambar!");
 }
 ```
 
