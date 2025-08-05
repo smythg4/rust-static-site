@@ -138,7 +138,7 @@ pub fn text_to_children(block: &str) -> Vec<HtmlNode> {
 pub fn get_heading_block_tag(block: &str) -> String {
     println!("Determing heading block tag from: {}", block);
     let num = block.chars()
-        .filter(|c| *c == '#')
+        .take_while(|c| *c == '#')
         .count()
         .min(6);
     format!("h{num}")
