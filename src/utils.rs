@@ -88,26 +88,53 @@ pub fn split_nodes_link(old_nodes: Vec<TextNode>) -> Result<Vec<TextNode>, NodeE
             new_nodes.push(node);
             continue;
         }
-        let (title, url) = links.get(0).unwrap();
+        let (title, url) = links.first()
+            .ok_or_else(|| NodeError::ParseError("No links found".to_string()))?;
         let pat = format!("[{}]({})", title, url);
         println!("Hunting for pattern: {}", pat);
-        let sections: Vec<_> = node.text.splitn(2, pat.as_str()).collect();
+        let sections: Vec<_> = node.text.splitn(2, &pat).collect();
         println!("Found sections: {:?}", sections);
-        if let Some(new_text) = sections.get(0) {
-            println!("Making new plain text node from: {}", new_text);
-            let new_node = TextNode{ text: new_text.to_string(), text_type: TextType::Plain, url: None };
-            new_nodes.push(new_node);
-        }
 
-        // make the link node
-        let new_node = TextNode{ text: title.to_string(), text_type: TextType::Link, url: Some(url.to_string()) };
-        new_nodes.push(new_node);
+        match sections.as_slice() {
+            [] => {
+                return Err(NodeError::ParseError("Split returned empty result".to_string()));
+            },
+            [text] => {
+                new_nodes.push( TextNode {
+                    text: text.to_string(),
+                    text_type: TextType::Plain,
+                    url: None,
+                });
+            },
+            [before, after] => {
+                if !before.is_empty() {
+                    new_nodes.push( TextNode {
+                        text: before.to_string(),
+                        text_type: TextType::Plain,
+                        url: None,
+                    });
+                }
 
-        // parse the remainder of the node if required
-        if let Some(remaining_text) = sections.get(1) {
-            let remaining_node = TextNode{ text: remaining_text.to_string(), text_type: TextType::Plain, url: None };
-            let extra_nodes = split_nodes_link(vec![remaining_node])?;
-            new_nodes.extend(extra_nodes);
+                new_nodes.push( TextNode {
+                    text: title.to_string(),
+                    text_type: TextType::Link,
+                    url: Some(url.to_string()),
+                });
+
+                if !after.is_empty() {
+                    // recursively apply to the rest of the text...
+                    let remaining_node = TextNode {
+                        text: after.to_string(),
+                        text_type: TextType::Plain,
+                        url: None,
+                    };
+                    let extra_nodes = split_nodes_link(vec![remaining_node])?;
+                    new_nodes.extend(extra_nodes);
+                }
+            },
+            _ => {
+                return Err(NodeError::ParseError("Split returned unexpected number of sections".to_string()));
+            },
         }
     }
     Ok(new_nodes)
@@ -133,22 +160,46 @@ pub fn split_nodes_image(old_nodes: Vec<TextNode>) -> Result<Vec<TextNode>, Node
         let pat = format!("![{}]({})", alt_text, url);
         //println!("Hunting for pattern: {}", pat);
         let sections: Vec<_> = node.text.splitn(2, pat.as_str()).collect();
-        //println!("Found sections: {:?}", sections);
-        if let Some(new_text) = sections.get(0) {
-            //println!("Making new plain text node from: {}", new_text);
-            let new_node = TextNode{ text: new_text.to_string(), text_type: TextType::Plain, url: None };
-            new_nodes.push(new_node);
-        }
+        match sections.as_slice() {
+            [] => {
+                return Err(NodeError::ParseError("Split returned empty result".to_string()));
+            },
+            [text] => {
+                new_nodes.push( TextNode {
+                    text: text.to_string(),
+                    text_type: TextType::Plain,
+                    url: None,
+                });
+            },
+            [before, after] => {
+                if !before.is_empty() {
+                    new_nodes.push( TextNode {
+                        text: before.to_string(),
+                        text_type: TextType::Plain,
+                        url: None,
+                    });
+                }
 
-        // make the image node
-        let new_node = TextNode{ text: alt_text.to_string(), text_type: TextType::Image, url: Some(url.to_string()) };
-        new_nodes.push(new_node);
+                new_nodes.push( TextNode {
+                    text: alt_text.to_string(),
+                    text_type: TextType::Image,
+                    url: Some(url.to_string()),
+                });
 
-        // parse the remainder of the node if required
-        if let Some(remaining_text) = sections.get(1) {
-            let remaining_node = TextNode{ text: remaining_text.to_string(), text_type: TextType::Plain, url: None };
-            let extra_nodes = split_nodes_image(vec![remaining_node])?;
-            new_nodes.extend(extra_nodes);
+                if !after.is_empty() {
+                    // recursively apply to the rest of the text...
+                    let remaining_node = TextNode {
+                        text: after.to_string(),
+                        text_type: TextType::Plain,
+                        url: None,
+                    };
+                    let extra_nodes = split_nodes_link(vec![remaining_node])?;
+                    new_nodes.extend(extra_nodes);
+                }
+            },
+            _ => {
+                return Err(NodeError::ParseError("Split returned unexpected number of sections".to_string()));
+            },
         }
     }
     Ok(new_nodes)

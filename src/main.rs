@@ -10,7 +10,9 @@ fn clean_and_copy(origin: &Path, dest: &Path) -> Result<(), std::io::Error> {
     if origin.is_file() {
         println!("Copying file: {:?} -> {:?}", origin, dest);
         let dest_file = if dest.is_dir() {
-            dest.join(origin.file_name().unwrap())
+            let filename = origin.file_name()
+                .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidInput, "Invalid filename"))?;
+            dest.join(filename)
         } else {
             dest.to_path_buf()
         };
@@ -89,11 +91,14 @@ fn generate_page_recursive(dir_path_content: &Path, template_path: &Path, dest_d
             generate_page_recursive(&child_path, template_path, &new_dest_path, base_path)?;
         } else if child_path.is_file() && child_path.extension().map_or(false, |ext| ext == "md") {
             println!("Found markdown file: {:?}", child_path);
-            let parent_path = new_dest_path.ancestors().skip(1).next().unwrap();
+            let parent_path = new_dest_path.parent()
+                .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidInput, "No parent directory"))?;
             let dest_filepath = parent_path.join(Path::new(
                 & format!("{}.html",
-                    &new_dest_path.file_stem().unwrap()
-                    .to_str().unwrap())
+                    &new_dest_path.file_stem()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or("unnamed")
+                )
             ));
             println!("Generating new file: {:?}", dest_filepath);
             generate_page(&child_path, template_path, &dest_filepath, base_path)?;
