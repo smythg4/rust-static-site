@@ -1,12 +1,10 @@
+#[cfg(test)]
+mod tests {
 use std::collections::HashMap;
 use crate::htmlnode::HtmlNode;
 use crate::textnode::{TextNode, TextType};
 use crate::utils::*;
 use crate::blocks::*;
-
-#[cfg(test)]
-mod tests {
-    use super::*;
 
     #[test]
     fn test_props_to_html() {
